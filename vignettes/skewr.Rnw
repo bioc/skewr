@@ -1,0 +1,290 @@
+%\VignetteIndexEntry{An Introduction to the skewr Package}
+%\VignetteEngine{knitr::knitr}
+%\VignetteDepends{skewr}
+%\VignetteDepends{IlluminaHumanMethylation450kmanifest}
+%\VignetteDepends{methylumi}
+%\VignetteDepends{minfi}
+%\vignetteDepends{minfiData}
+%\VignetteDepends{wateRmelon}
+
+%\documentclass[draft]{article}
+\documentclass[12pt]{article}
+
+\usepackage{graphicx}
+\graphicspath{{./figure/}}
+\DeclareGraphicsExtensions{.pdf, .png, .jpeg}
+\usepackage{amsmath}
+%\usepackage{color,hyperref}
+\usepackage{fullpage}
+\usepackage[numbers]{natbib}
+\PassOptionsToPackage{hyphens}{url}\usepackage{color, hyperref}
+\definecolor{darkblue}{rgb}{0.0,0.0,0.75}
+\hypersetup{colorlinks,breaklinks,
+            linkcolor=darkblue,urlcolor=darkblue,
+            anchorcolor=darkblue,citecolor=darkblue}
+\usepackage{parskip}
+\usepackage{microtype}
+
+\newcommand{\Rcode}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{\textsf{#1}}
+\newcommand{\software}[1]{\textsf{#1}}
+\newcommand{\R}{\software{R}}
+
+\title{An Introduction to the \textbf{skewr} Package}
+\author{Ryan Putney \and Steven Eschrich \and Anders Berglund}
+\date{\today}
+
+
+\begin{document}
+
+
+<<knitr, include=FALSE, echo=FALSE>>=
+library(knitr)
+opts_chunk$set(tidy=FALSE,size='scriptsize', cache=FALSE, cache.comments=FALSE)
+@
+
+<<options,eval=TRUE,echo=FALSE,results='hide' >>=
+options(width=70)
+@
+\maketitle
+\setcounter{secnumdepth}{1}
+
+\section{Introduction}
+
+The \Rpackage{skewr} package is a tool for visualizing the output of the Illumina Human Methylation 450k BeadChip(450k) to aid in quality control. It creates a panel of nine plots. Six of the plots represent the density of either the methylated intensity or the unmethylated intensity given by one of three subsets of the 485,577 total probes. These subsets include Type I-red, Type I-green, and Type II. The remaining three distributions give the density of the $\beta$-values for these same three subsets. Each of the nine plots optionally displays the distributions of the \textsf{"rs"} SNP probes and the probes associated with imprinted genes\citep{Pidsley:2013} as a series of 'tick' marks located above the x-axis.
+
+
+
+\subsection{Importance of the data}
+
+DNA methylation is an epigenetic modification of the genome believed to play a role in gene expression. Hypermethylation and hypomethylation have the potential to either silence or 'turn on' specific genes, respectively. For this reason, the role that methylation plays in disease processes, such as cancer, is of particular interest to researchers. The introduction of 450k which can efficiently query the methylation status of more than 450,000 CpG sites has given rise to the need of being able to analyze the generated data in an equally efficient, as well as accurate, manner.
+
+\subsection{450k Design}
+
+The 450k utilizes two separate assay methods on a single chip. Approximately 135,000 of the total number of probes on the 450k are of the Infinium Type I technology, as used on the preceding 27k BeadChip. The Type I probes have both a methylated and an unmethylated probe type for each CpG site. The final base of these probe types are designed to match either the methylated \textbf{C} or the \textbf{T} which results from bisulfite conversion of an unmethylated \textbf{C}. A single base extension results in the addition of a colored dye. The color of the fluorescent dye used to measure the intensities of these probes is the same for both the methylated and unmethylated types. The Type II probes utilize one probe for both the methylated and unmethylated CpG locus. The single base extension step itself determines the methylation status of the locus. If the interrogated locus has a methylated \textbf{C}, then a green-labeled \textbf{G} is added, while a red-labeled \textbf{A} is added if the locus has the converted \textbf{T} denoting an unmethylated locus. For this reason, the level of methylation for the type II probes is always measured in the green channel, while level of unmethylation in the red. These factors mean that there are potentially six subsets of the total signal intensity: Type I-red methylated, Type I-red unmethylated, Type I-green methylated, Type I-green unmethylated, Type II methylated, and Type II unmethylated.
+
+The preferred metric for evaluating the level of methylation for a given probe is usually the $\beta$-value, which is calculated as a ratio of the methylated signal intensity over the sum of the methylated and unmethylated signal intensities and a small offset value $\alpha$, which is usually 100:
+\begin{align*}
+  \beta = \frac{M}{M + U + \alpha}
+\end{align*}
+
+The $\beta$-value has the advantages of being the Illumina recommended metric and of being natural and straightforward\citep{Du:2010}.
+
+Differences in the performance of the Type I and Type II probes\citep{Bibikova:2011,Dedeurwaerder:2011} and the existence of dye bias introduced by the two-color design\citep{Dedeurwaerder:2013}, however, have been observed. Much work has been done to correct these confounding factors, but their efficacy is usually judged in $\beta$ space.
+
+\subsection{Proposed Use of \Rpackage{skewr}}
+
+\Rpackage{skewr} is designed to visualize the array data in $\log_2$ intensity space. By analyzing the data in this way, we believe that a more accurate understanding of the biological variation may be attained.
+
+As a step in that direction, we found that the $\log_2$ distributions of the intensities may be modeled as a mixture of skew-normal distributions. A three-component model fits the Type I intensity distributions well, while two components generally fit the Type II distributions the best. We have observed a difficulty in fitting a Skew-normal mixture model to the Type II intensity distributions, especially the unmethylated probes. We have verified, however, that the two-component model works very well for samples that carry a reasonable assumption of purity.
+
+The location of the individual components themselves may give insight into the true signal-to-noise ratio, as well as possible mechanisms of non-specific binding. The posterior probabilities for the intensities of individual probes may prove useful in distinguishing the true biological variability in the methylation levels.
+
+\subsection{Finite Mixture of Skew-normal Distributions}
+
+\Rpackage{skewr} utilizes the \Rpackage{mixsmsn} package to estimate the parameters for the Skew-normal components that make up the finite mixture model for the intensity distributions\citep{Prates:2013}. \Rpackage{mixsmsn} deals with the family of distributions known as the scale mixtures of the skew-normal distributions(SMSN)\citep{Basso:2010}.
+
+If a random variable $Z$ has a skew-normal distribution with location parameter $\mu$, scale parameter $\sigma^2$, and skewness, or shape, parameter $\lambda$, its density is given by:
+
+\begin{align} \label{eq:1}
+\psi(z) = 2\phi(z; \mu, \sigma^2)\Phi\left(\frac{\lambda(z-\mu)}{\sigma}\right),
+\end{align}
+
+where $\phi(\cdot ; \mu, \sigma^2)$ is the probability density function and $\Phi(\cdot)$ is the cumulative distribution function, both of the univariate normal distribution. Random variable $Z$ is then denoted as $Z\sim\mathrm{SN}(\mu, \sigma^2, \lambda)$.
+
+$Y$ is a random variable with an SMSN distribution if:
+
+\begin{align}
+Y = \mu + U^{-1/2}Z,
+\end{align}
+
+where $\mu$ is the location parameter, $Z \sim \mathrm{SN}(0, \sigma^2, \lambda)$, and $U$ is a positive random variable given by the distribution function $H(\cdot, \nu)$. Then $U$ becomes the scale factor, and its distribution $H(\cdot, \nu)$ is the mixing distribution indexed by the parameter $\nu$ which may be univariate or multivariate. Since \Rpackage{skewr} is only dealing with the skew-normal distribution of the SMSN family $U$ always has the value $1$, and the parameter $\nu$ has no significance. Therefore,
+
+\begin{align}
+Y = \mu + Z, \quad Z \sim \mathrm{SN}(0, \sigma^2, \lambda)
+\end{align}
+
+A finite mixture of skew-normal distributions for a random sample $\mathbf{y} = (y_1, y_2, \dots, Y_n)$ with $g$ number of components is given by:
+
+\begin{align}
+f(y_i, \Theta)=\sum_{j=1}^{g}p_j\psi(y_i;\theta_j),\quad p_j \geq 0, \quad \sum_{j=1}^{g}p_j=1, \quad i=1, \dots, n, \quad j=1, \dots, g,
+\end{align}
+
+where $\theta_j = (\mu_j, \sigma^2_j, \lambda_j)$ are the parameters for the $j$\textsuperscript{th} skew-normal component, $p_1, \dots, p_g$ are the mixing probabilities, or weights, for the components, and $\Theta$ is a vector of all the parameters: $\Theta = ((p_1,\dots,p_g), \theta_1,\dots,\theta_g)$.
+
+Finally, the estimated posterior probability $\hat{z}_{ij}$ is given by:
+
+\begin{align}
+\hat{z}_{ij} = \frac{\hat{p}_j\mathrm{SN}(y_i; \hat{\mu}_j,\hat{\sigma}^2_j, \hat{\lambda}_j)}{\sum_{k=1}^{g}\hat{p}_k\mathrm{SN}(y_i; \hat{\mu}_k,\hat{\sigma}^2_k, \hat{\lambda}_k)}, \quad i=1,\dots,n, \quad j=1,\dots,g,
+\end{align}
+
+which is essentially the probability of finding a given point in the $j$\textsuperscript{th} component over the probability of finding it in the mixture model.
+
+\section{Getting Started}
+\subsection{Installation}
+\Rpackage{skewr} is a package that is designed to work with several preexisting packages. Therefore, a fair number of dependencies are required. The following packages must be installed:
+
+<<install, eval=FALSE>>=
+packages.install('mixsmsn')
+source('http://bioconductor.org/biocLite.R')
+biocLite(c('skewr', 'methylumi', 'minfi', 'wateRmelon',
+           'IlluminaHumanMethylation450kmanifest', 'IRanges'))
+@
+And to run this vignette as written:
+
+<<minfiData, eval=FALSE>>=
+biocLite('minfiData')
+@
+
+\subsection{Load \Rpackage{skewr}}
+<<load, message=FALSE, warning=FALSE>>=
+library(skewr)
+library(minfiData)
+@
+
+\clearpage
+\section{Sample Session}
+
+\Rpackage{skewr} provides a convenience function for retrieving clean barcode names from all idat files found in the path, or vector of paths, given as a parameter. \Rcode{getMethyLumiSet} is a wrapper function utilizing the \Rcode{methylumIDAT} function provided by \Rpackage{methylumi}\citep{methylumi}. \Rcode{getMethyLumiSet} will process all idat files in the path to the directory given by the first argument, or default to the working directory if none is given. A vector of barcodes may be provided if only those specific idat files are to be processed. The default output will be a raw MethyLumiSet, unless a normalization method is specified when calling \Rcode{getMethyLumiSet}. It is unlikely that preprocessing will be desired when calling \Rcode{getMethyLumiSet} unless one is only interested in a single normalization method. It is much more likely that \Rcode{getMethyLumiSet} will be called to assign the raw \Rcode{MethyLumiSet} object to a label. Then the \Rcode{preprocess} method provided by the \Rpackage{skewr} may be called to return a number of objects with different normalization methods applied\citep{Maksimovic:2012,Pidsley:2013}.
+
+As an example of the use of the \Rcode{getBarcodes} function provided by \Rpackage{skewr}, we will start by retrieving the barcodes of some idat files provided by \Rpackage{minfiData}\citep{minfiData}.
+
+<<getIDATs, eval=TRUE, warning=FALSE, message=FALSE>>=
+baseDir <- system.file("extdata/5723646052", package = "minfiData")
+barcodes <- getBarcodes(path = baseDir)
+barcodes
+@
+
+<<getMethyLumi, eval=FALSE, warning=FALSE, message=FALSE>>=
+methylumiset.raw <- getMethyLumiSet(path = baseDir, barcodes =  barcodes[1:2])
+methylumiset.illumina <- preprocess(methylumiset.raw, norm = 'illumina',
+                                    bg.corr = FALSE)
+@
+
+To allow for a more efficient demonstration, however, the rest of the vignette will utilize a \Rcode{MethyLumiSet} object that is supplied by the Bioconductor package \Rpackage{wateRmelon}. This reduced data set only contains 3363 features out of the 485,577 total probes. We will only use one sample, but \Rpackage{skewr} will plot panels for all samples contained within the \Rcode{MethyLumiSet} passed to it.
+
+<<getMelon, eval=TRUE>>=
+data(melon)
+melon.raw <- melon[,11]
+@
+
+Additional normalization methods may be performed as follows:
+
+<<getMethyLumiNormEx, eval=FALSE>>=
+melon.illumina <- preprocess(melon.raw, norm = 'illumina', bg.corr = TRUE)
+melon.SWAN <- preprocess(melon.raw, norm = 'SWAN')
+melon.dasen <- preprocess(melon.raw, norm = 'dasen')
+@
+\clearpage
+\Rcode{getSNparams} will subset the probes by either methylated, \texttt{M}, or  unmethylated, \texttt{U}, and \texttt{I-red}, \texttt{I-green}, or \texttt{II}. The subset of probes are then fitted to a skew-normal finite mixture model. The mixture modelling is provided by the \Rcode{smsn.mix} method of the \Rpackage{mixsmsn} package. Assign the return value or each of the six \Rcode{getSNparams} calls to a separate label.
+
+<<mixes, eval=TRUE>>=
+sn.raw.meth.I.red <- getSNparams(melon.raw, 'M', 'I-red')
+sn.raw.unmeth.I.red <- getSNparams(melon.raw, 'U', 'I-red')
+sn.raw.meth.I.green <- getSNparams(melon.raw, 'M', 'I-green')
+sn.raw.unmeth.I.green <- getSNparams(melon.raw, 'U', 'I-green')
+sn.raw.meth.II <- getSNparams(melon.raw, 'M', 'II')
+sn.raw.unmeth.II <- getSNparams(melon.raw, 'U', 'II')
+@
+
+If you want to compare the raw data for your experiment with the same data after a normalization method has been performed, you would carry out the same steps for each of your normalized \Rcode{MethyLumiSet}s. For example:
+
+<<mixesdasen, eval=FALSE>>=
+sn.dasen.meth.I.red <- getSNparams(melon.dasen, 'M', 'I-red')
+sn.dasen.unmeth.I.red <- getSNparams(melon.dasen, 'U', 'I-red')
+sn.dasen.meth.I.green <- getSNparams(melon.dasen, 'M', 'I-green')
+sn.dasen.unmeth.I.green <- getSNparams(melon.dasen, 'U', 'I-green')
+sn.dasen.meth.II <- getSNparams(melon.dasen, 'M', 'II')
+sn.dasen.unmeth.II <- getSNparams(melon.dasen, 'U', 'II')
+@
+
+Before the panel plots can be made, the values returned by \Rcode{getSNparams} must be put into a list so that probes with the same assay and channel are in a separate list object with the methylated probes listed first followed by the unmethylated. Note that \Rpackage{skewr} is designed to create a series of panel plots for an entire experiment. It will not work if one attempts to index a single sample and its accompanying skew-normal models. See \autoref{sec:single} for information on how to better view a single sample within an experiment.
+
+<<list, eval=TRUE>>=
+raw.I.red.mixes <- list(sn.raw.meth.I.red, sn.raw.unmeth.I.red)
+raw.I.green.mixes <- list(sn.raw.meth.I.green, sn.raw.unmeth.I.green)
+raw.II.mixes <- list(sn.raw.meth.II, sn.raw.unmeth.II)
+@
+
+The \Rcode{panelPlots} method takes the original \Rcode{MethyLumiSet} object as the first parameter. The following parameters consist of the listed \texttt{I-red}, \texttt{I-green}, and \texttt{II} models, in that order.
+
+<<panelPlot1, eval=TRUE, echo=TRUE, dev='png', dpi=300, fig.cap='Panel Plot for One Sample'>>=
+panelPlots(melon.raw, raw.I.red.mixes, raw.I.green.mixes,
+           raw.II.mixes, norm = 'Raw')
+@
+
+The \Rcode{samp.num} parameter of \Rcode{panelPlots}, may also be specified if plots for only one sample out of an experimenter is wanted. The \Rcode{samp.num} is an integer indexing the sample column within the \Rcode{MethyLumiSet} object.
+
+Of course, the listing of the Skew-normal objects may be done in the call to \Rcode{panelPlots}.
+
+<<panelPlot2, eval=FALSE, echo=TRUE, dev='png', dpi=600>>=
+panelPlots(melon.dasen,
+           list(sn.dasen.meth.I.red, sn.dasen.unmeth.I.red),
+           list(sn.dasen.meth.I.green, sn.dasen.unmeth.I.green),
+           list(sn.dasen.meth.II, sn.dasen.unmeth.II), norm = 'dasen')
+@
+
+\Rcode{panelPlots} will produce a panel plot for each sample in your experiment, \autoref{fig:panelPlot1}. Producing panel plots of the same experiment with different types of normalization applied may allow a better understanding of what the normalization method is actually doing to the data. %\autoref{fig:panel2}.
+
+%\begin{figure}[ht!]
+%\centering
+%\includegraphics[width=\linewidth]{panelPlot1-1.png}
+%\caption{Panel Plot for One Sample}
+%\label{fig:panel1}
+%\end{figure}
+
+%\begin{figure}[ht!]
+%\centering
+%\includegraphics[width=\linewidth]{panelPlot2-1.png}
+%\caption{Panel Plot for One Sample after dasen}
+%\label{fig:panel2}
+%\end{figure}
+
+\clearpage
+\section{Single Plots}
+\label{sec:single}
+
+It is possible to call \Rcode{panelPlots} with the \Rcode{plot} parameter as \Rcode{plot = 'frames'}. In this case, a sample number for a single sample contained within your experiment must also be passed as a parameter. If \Rcode{panelPlots} is called in this manner, nine separate, large plots will be created. Each of these nine plots correspond to a single pane that would be found in the panel plot for the selected sample. In addition, each of these separate plots, except for the beta plots, will contain a legend with useful information, such as the means and modes for each of the components of the mixture. The means and modes are also contained as part of the \Rcode{Skew.normal} object returned by \Rcode{getSNparams} and may be accessed in the following manner:
+
+<<listAccess, eval=TRUE>>=
+class(sn.raw.meth.I.red[[1]])
+names(sn.raw.meth.I.red[[1]])
+sn.raw.meth.I.red[[1]]$means
+sn.raw.meth.I.red[[1]]$modes
+@
+
+To generate each panel as a single plot, see examples~\autoref{fig:singlePlots1}~and~\autoref{fig:singlePlots2}:
+
+<<singlePlots, eval=TRUE, echo=TRUE, dev='png', dpi=300, fig.cap=c('Single Frame Showing Skew-normal Components', 'Single Frame Showing Beta Distribution for Type I Red')>>=
+panelPlots(melon.raw, raw.I.red.mixes, raw.I.green.mixes,
+           raw.II.mixes, plot='frames', frame.nums=c(1,3), norm='Raw')
+@
+
+%\begin{figure}[ht!]
+%\centering
+%\includegraphics[width=\linewidth]{singlePlots-1.png}
+%\caption{single pane}
+%\label{fig:int}
+%\end{figure}
+
+%\begin{figure}[ht!]
+%\centering
+%\includegraphics[width=\linewidth]{singlePlots-3.png}
+%\caption{single pane}
+%\label{fig:beta}
+%\end{figure}
+
+The graph includes the histogram of the intensities expressed as probabilities as would be produced by the generic \Rcode{hist} function. The dotted line represents the kernel density estimation. The colored curves are the probability distributions of the individual components with the vertical solid and dotted lines being the mode and mean, respectively, for each component. The legend identifies the mean and the mode and provides a floating point value, rounded off to three decimal places, for each. The solid black line is the sum of the components, representing the fit of the Skew-normal mixture model.
+
+\clearpage
+\section{sessionInfo}
+
+<<sessionInfo, results='asis', echo=FALSE>>=
+toLatex(sessionInfo())
+@
+
+\nocite{*}
+\bibliographystyle{unsrturl}
+\bibliography{skewr}
+
+\end{document}

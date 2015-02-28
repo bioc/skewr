@@ -1,0 +1,18 @@
+#exportPattern("^[^\\.]")
+
+export('getSNparams')
+export('panelPlots')
+export('getMethyLumiSet')
+export('preprocess')
+export('subsetProbes')
+export('getBarcodes')
+#export('plotComponents')
+
+importFrom('mixsmsn', 'smsn.mix', 'mix.hist')
+importFrom('methylumi', 'methylumIDAT', 'normalizeMethyLumiSet',
+           'methylumi.bgcorr', 'controlData', 'negctls', 'betas')
+importFrom('minfi', 'getProbeInfo')
+import('IlluminaHumanMethylation450kmanifest')
+importFrom('wateRmelon', 'dasen', 'swan', 'iDMR')
+import('RColorBrewer')
+import('IRanges')
