@@ -1,7 +1,7 @@
 Package: skewr
 Title: Visualize Intensities Produced by Illumina's Human Methylation
         450k BeadChip
-Version: 1.12.0
+Version: 1.13.0
 Authors@R: c(person("Ryan", "Putney", role = c("cre", "aut"), email =
         "ryanputney@gmail.com"), person("Steven", "Eschrich", role =
         "aut"), person("Anders", "Berglund", role = "aut"))
