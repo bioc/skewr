@@ -63,8 +63,8 @@ subsetProbes <- function(object, allele = c('M', 'U'), type = c('I-red', 'I-gree
   else I.red.names <- I.grn.names <- II.names <- NULL
 
   if(snps){
-    snpI.red.names <- IRanges::subset(getProbeInfo(IlluminaHumanMethylation450kmanifest, "SnpI"), Color == "Red")$Name
-    snpI.grn.names <- IRanges::subset(getProbeInfo(IlluminaHumanMethylation450kmanifest, "SnpI"), Color == "Grn")$Name
+    snpI.red.names <- S4Vectors::subset(getProbeInfo(IlluminaHumanMethylation450kmanifest, "SnpI"), Color == "Red")$Name
+    snpI.grn.names <- S4Vectors::subset(getProbeInfo(IlluminaHumanMethylation450kmanifest, "SnpI"), Color == "Grn")$Name
     snpII.names <- minfi::getProbeInfo(IlluminaHumanMethylation450kmanifest, "SnpII")$Name
     #print(subset(getProbeInfo(IlluminaHumanMethylation450kmanifest,'SnpII'), Color=='Red'))
     #snpI.grn.names <- snpI.red.names <- snpII.names <- NULL
