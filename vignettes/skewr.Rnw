@@ -126,14 +126,15 @@ which is essentially the probability of finding a given point in the $j$\textsup
 
 <<install, eval=FALSE>>=
 packages.install('mixsmsn')
-source('http://bioconductor.org/biocLite.R')
-biocLite(c('skewr', 'methylumi', 'minfi', 'wateRmelon',
+if (!requireNamespace("BiocManager", quietly=TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c('skewr', 'methylumi', 'minfi', 'wateRmelon',
            'IlluminaHumanMethylation450kmanifest', 'IRanges'))
 @
 And to run this vignette as written:
 
 <<minfiData, eval=FALSE>>=
-biocLite('minfiData')
+BiocManager::install('minfiData')
 @
 
 \subsection{Load \Rpackage{skewr}}
